@@ -35,4 +35,22 @@
 .help-tooltip:hover .tooltip {
     display: block;
     opacity: 1;
+}
+
+/* 清空按钮样式调整 */
+#clearUrlBtn {
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    pointer-events: none;
+}
+
+#clearUrlBtn.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* 输入框非默认值时显示清空按钮 */
+#ollamaUrl:not([value="http://localhost:11434"]) + #clearUrlBtn {
+    opacity: 1;
+    pointer-events: auto;
 } 

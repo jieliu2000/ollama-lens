@@ -81,4 +81,26 @@ function clearHistory() {
             </div>
         `;
     }
+}
+
+// 新增清空功能函数
+function toggleClearButton(input) {
+    const clearBtn = document.getElementById('clearUrlBtn');
+    const defaultValue = 'http://localhost:11434';
+    clearBtn.classList.toggle('active', input.value !== defaultValue);
+}
+
+function clearOllamaUrl() {
+    const input = document.getElementById('ollamaUrl');
+    input.value = 'http://localhost:11434';
+    toggleClearButton(input);
+    saveConfig();
+    input.focus();
+}
+
+function restoreDefault(input) {
+    if (input.value.trim() === '') {
+        input.value = defaultValue;
+        toggleClearButton(input);
+    }
 } 
