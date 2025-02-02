@@ -203,5 +203,37 @@
         </div>
     </div>
     <script src="lib.js"></script>
+    <div class="config-panel">
+        <input type="text" id="ollamaUrl" placeholder="Ollama服务器地址">
+        <button onclick="saveConfig()">保存配置</button>
+    </div>
+
+    <script>
+    // 页面加载时获取当前配置
+    window.addEventListener('load', () => {
+        fetch('/api/config/ollama')
+            .then(r => r.json())
+            .then(data => {
+                document.getElementById('ollamaUrl').value = data.url || 'http://localhost:11434';
+            });
+    });
+
+    // 保存配置
+    function saveConfig() {
+        const urlInput = document.getElementById('ollamaUrl');
+        fetch('/api/config/ollama', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ url: urlInput.value })
+        })
+        .then(r => r.json())
+        .then(data => {
+            alert('配置已保存');
+            location.reload(); // 可选：重新加载页面使配置生效
+        });
+    }
+    </script>
 </body>
 </html> 

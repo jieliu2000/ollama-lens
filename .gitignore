@@ -1,0 +1,36 @@
+# 通用忽略规则
+*.exe
+*.dll
+*.so
+*.dylib
+*.log
+*.out
+.env
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+tmp/
+bin/
+dist/
+node_modules/
+
+# Go 相关
+# 忽略二进制文件（当包含调试信息时）
+*.exe~
+*.test
+*.prof
+
+# 忽略 Go workspace 文件
+go.work
+
+# 项目特定忽略
+/static/uploads/  # 如果有文件上传功能
+/config.local.yaml # 本地配置文件
+
+# 开发环境生成的文件
+debug
+coverage.txt
+*.local
+*.swp
+*.swo 
