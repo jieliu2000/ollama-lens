@@ -1,0 +1,38 @@
+.toggle-checkbox:checked {
+    transform: translateX(1rem) !important;
+    border-color: #3B82F6 !important;
+}
+.toggle-checkbox:checked + .toggle-label {
+    background-color: #3B82F6 !important;
+}
+.toggle-checkbox {
+    transition: transform 0.2s ease-in-out, border-color 0.2s;
+}
+.toggle-label {
+    transition: background-color 0.2s;
+}
+#chatHistory {
+    padding-top: 2.5rem;
+}
+
+@media (max-width: 768px) {
+    .main-container {
+        flex-direction: column;
+    }
+    .config-panel {
+        width: 100%;
+        margin-top: 1.5rem;
+    }
+    .chat-history {
+        height: 50vh;
+    }
+    .input-panel {
+        margin-bottom: 1rem;
+    }
+}
+
+/* 新增工具提示样式 */
+.help-tooltip:hover .tooltip {
+    display: block;
+    opacity: 1;
+} 

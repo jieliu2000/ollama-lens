@@ -57,6 +57,16 @@ document.addEventListener('DOMContentLoaded', () => {
             tooltip.classList.toggle('hidden');
         });
     });
+
+    document.querySelector('.clear-history-btn').addEventListener('click', clearHistory);
+
+    document.querySelectorAll('input[type="range"]').forEach(slider => {
+        slider.addEventListener('input', function() {
+            if(this.nextElementSibling && this.nextElementSibling.tagName === 'SPAN') {
+                this.nextElementSibling.textContent = (this.value/100).toFixed(1);
+            }
+        });
+    });
 });
 
 function clearHistory() {

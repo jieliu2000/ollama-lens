@@ -5,39 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
     <title>OllamaLens</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <style>
-        .toggle-checkbox:checked {
-            transform: translateX(1rem) !important;
-            border-color: #3B82F6 !important;
-        }
-        .toggle-checkbox:checked + .toggle-label {
-            background-color: #3B82F6 !important;
-        }
-        .toggle-checkbox {
-            transition: transform 0.2s ease-in-out, border-color 0.2s;
-        }
-        .toggle-label {
-            transition: background-color 0.2s;
-        }
-        #chatHistory {
-            padding-top: 2.5rem; /* 40px */
-        }
-        @media (max-width: 768px) {
-            .main-container {
-                flex-direction: column;
-            }
-            .config-panel {
-                width: 100%;
-                margin-top: 1.5rem;
-            }
-            .chat-history {
-                height: 50vh;
-            }
-            .input-panel {
-                margin-bottom: 1rem;
-            }
-        }
-    </style>
+    <link href="styles.css" rel="stylesheet">
 </head>
 <body class="bg-gray-100">
     <div class="container mx-auto p-4">
@@ -48,8 +16,7 @@
             <div class="flex-1 input-panel">
                 <div class="flex justify-between items-center mb-3 md:mb-4">
                     <h2 class="text-xl font-semibold text-gray-700">对话历史</h2>
-                    <button onclick="clearHistory()" 
-                            class="flex items-center text-sm text-gray-500 hover:text-gray-600 bg-white px-3 py-1.5 rounded-lg border border-gray-200 shadow-sm transition-all">
+                    <button class="clear-history-btn flex items-center text-sm text-gray-500 hover:text-gray-600 bg-white px-3 py-1.5 rounded-lg border border-gray-200 shadow-sm transition-all">
                         <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                                   d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
