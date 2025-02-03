@@ -1,0 +1,62 @@
+name: Create Release
+
+on:
+  push:
+    tags:
+      - "v*" # 匹配以v开头的标签，例如v1.0.0
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # 需要权限来创建release和上传资源
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.21" # 根据你的Go版本调整
+
+      - name: Build application
+        run: |
+          mkdir -p dist
+          # 多平台编译
+          GOOS=linux GOARCH=amd64 go build -o dist/ollamalens-linux-amd64 main.go
+          GOOS=darwin GOARCH=arm64 go build -o dist/ollamalens-macos-arm64 main.go
+          GOOS=windows GOARCH=amd64 go build -o dist/ollamalens-windows-amd64.exe main.go
+
+      - name: Package artifacts
+        run: |
+          # 为每个平台创建单独的zip包
+          cd dist
+          for binary in *; do
+            zip -r ../${binary%.*}.zip $binary ../static/
+          done
+          cd ..
+          ls -l *.zip
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref_name }}
+          release_name: Release ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: |
+            ollamalens-linux-amd64.zip
+            ollamalens-macos-arm64.zip
+            ollamalens-windows-amd64.zip
+          asset_content_type: application/zip
