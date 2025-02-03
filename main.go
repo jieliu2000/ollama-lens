@@ -13,9 +13,9 @@ import (
 	"runtime"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/spf13/viper"
 )
 
 var (
@@ -25,11 +25,37 @@ var (
 	fileCacheLock sync.RWMutex
 )
 
-func main() {
-	// 1. 确定可用端口
-	port := findAvailablePort(11434)
+func initConfig() {
+	viper.SetConfigName("ollama_lens")
+	viper.SetConfigType("yml")
+	viper.AddConfigPath(".")
+	viper.AddConfigPath("$HOME/.config/ollama_lens")
 
-	// 2. 初始化Gin引擎
+	// 设置默认值
+	viper.SetDefault("server.port", 6366)
+	viper.SetDefault("server.host", "localhost")
+	viper.SetDefault("ollama.default_url", "http://localhost:11434")
+
+	if err := viper.ReadInConfig(); err != nil {
+		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
+			// 配置文件不存在时创建默认配置
+			if err := viper.SafeWriteConfig(); err != nil {
+				log.Printf("无法创建配置文件: %v", err)
+			}
+		} else {
+			log.Printf("读取配置文件错误: %v", err)
+		}
+	}
+}
+
+func main() {
+	// 初始化配置
+	initConfig()
+
+	// 初始化 Ollama URL
+	ollamaURL = viper.GetString("ollama.default_url")
+
+	// 初始化 Gin 引擎
 	r := gin.Default()
 
 	// 设置静态文件路由
@@ -38,28 +64,25 @@ func main() {
 		c.Redirect(http.StatusMovedPermanently, "/static/index.html")
 	})
 
-	// 3. 创建Ollama代理
+	// 创建 Ollama 代理
 	r.Any("/ollama/*path", ollamaProxyHandler)
 
 	// 添加配置接口路由
 	r.POST("/api/config/ollama", updateOllamaConfigHandler)
 	r.GET("/api/config/ollama", getOllamaConfigHandler)
 
+	// 获取配置的服务器地址和端口
+	host := viper.GetString("server.host")
+	port := viper.GetInt("server.port")
+	addr := fmt.Sprintf("%s:%d", host, port)
+
 	// 启动服务器
 	var listener net.Listener
 	var err error
-	listener, err = net.Listen("tcp", fmt.Sprintf(":%d", port))
+	listener, err = net.Listen("tcp", addr)
 	if err != nil {
 		log.Fatal(err)
 	}
-	realPort := listener.Addr().(*net.TCPAddr).Port
-
-	// 使用这个 listener 启动 Gin
-	go func() {
-		if err := r.RunListener(listener); err != nil {
-			log.Fatal(err)
-		}
-	}()
 
 	// 替换静态文件路由
 	replaceStaticPlaceholders := func(c *gin.Context) {
@@ -82,7 +105,7 @@ func main() {
 			// 只缓存 js 和 html 文件
 			if strings.HasSuffix(path, ".js") || strings.HasSuffix(path, ".html") {
 				replaced := strings.ReplaceAll(string(content), "__OLLAMA_PROXY__",
-					fmt.Sprintf("http://localhost:%d/ollama", realPort))
+					fmt.Sprintf("http://%s:%d/ollama", host, port))
 
 				fileCacheLock.Lock()
 				fileCache[fullPath] = []byte(replaced)
@@ -108,31 +131,18 @@ func main() {
 		replaceStaticPlaceholders(c)
 	})
 
-	// 4. 自动打开浏览器
-	openBrowser(fmt.Sprintf("http://localhost:%d", port))
+	// 自动打开浏览器
+	openBrowser(fmt.Sprintf("http://%s:%d", host, port))
+
+	// 启动服务器
+	go func() {
+		if err := r.RunListener(listener); err != nil {
+			log.Fatal(err)
+		}
+	}()
 
 	// 保持程序运行
 	select {}
-}
-
-// 查找可用端口
-func findAvailablePort(startPort int) int {
-	for port := startPort; port < 65535; port++ {
-		if isPortAvailable(port) {
-			return port
-		}
-	}
-	return 11434 // 默认回退
-}
-
-func isPortAvailable(port int) bool {
-	timeout := time.Second
-	conn, err := net.DialTimeout("tcp", net.JoinHostPort("localhost", fmt.Sprintf("%d", port)), timeout)
-	if err != nil {
-		return true
-	}
-	defer conn.Close()
-	return false
 }
 
 // Ollama代理处理

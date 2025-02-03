@@ -1,0 +1,5 @@
+server:
+  port: 6366
+  host: "localhost"
+ollama:
+  default_url: "http://localhost:11434"
