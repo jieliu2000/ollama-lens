@@ -8,6 +8,12 @@ on:
 jobs:
   build-and-release:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - artifact: ollamalens-linux-amd64.zip
+          - artifact: ollamalens-macos-arm64.zip
+          - artifact: ollamalens-windows-amd64.zip
     permissions:
       contents: write # 需要权限来创建release和上传资源
 
@@ -55,9 +61,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: |
-            ollamalens-linux-amd64.zip
-            ollamalens-macos-arm64.zip
-            ollamalens-windows-amd64.zip
-          asset_name: ${{ github.workflow }}-${{ runner.os }}.zip
+          asset_path: ${{ matrix.artifact }}
+          asset_name: ${{ matrix.artifact }}
           asset_content_type: application/zip
