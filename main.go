@@ -7,8 +7,11 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
+	"strings"
 	"sync"
 	"time"
 
@@ -18,9 +21,9 @@ import (
 var (
 	ollamaURL     string
 	ollamaURLLock sync.RWMutex
+	fileCache     = make(map[string][]byte)
+	fileCacheLock sync.RWMutex
 )
-
-var ollamaProxy *httputil.ReverseProxy
 
 func main() {
 	// 1. 确定可用端口
@@ -32,7 +35,7 @@ func main() {
 	// 设置静态文件路由
 	r.Static("/static", "./static")
 	r.GET("/", func(c *gin.Context) {
-		c.File("./static/index.html")
+		c.Redirect(http.StatusMovedPermanently, "/static/index.html")
 	})
 
 	// 3. 创建Ollama代理
@@ -43,11 +46,67 @@ func main() {
 	r.GET("/api/config/ollama", getOllamaConfigHandler)
 
 	// 启动服务器
+	var listener net.Listener
+	var err error
+	listener, err = net.Listen("tcp", fmt.Sprintf(":%d", port))
+	if err != nil {
+		log.Fatal(err)
+	}
+	realPort := listener.Addr().(*net.TCPAddr).Port
+
+	// 使用这个 listener 启动 Gin
 	go func() {
-		if err := r.Run(fmt.Sprintf(":%d", port)); err != nil {
-			log.Fatalf("Failed to start server: %v", err)
+		if err := r.RunListener(listener); err != nil {
+			log.Fatal(err)
 		}
 	}()
+
+	// 替换静态文件路由
+	replaceStaticPlaceholders := func(c *gin.Context) {
+		path := c.Param("filepath")
+		fullPath := filepath.Join("static", path)
+
+		// 先检查缓存
+		fileCacheLock.RLock()
+		content, exists := fileCache[fullPath]
+		fileCacheLock.RUnlock()
+
+		if !exists {
+			var err error
+			content, err = os.ReadFile(fullPath)
+			if err != nil {
+				c.AbortWithStatus(404)
+				return
+			}
+
+			// 只缓存 js 和 html 文件
+			if strings.HasSuffix(path, ".js") || strings.HasSuffix(path, ".html") {
+				replaced := strings.ReplaceAll(string(content), "__OLLAMA_PROXY__",
+					fmt.Sprintf("http://localhost:%d/ollama", realPort))
+
+				fileCacheLock.Lock()
+				fileCache[fullPath] = []byte(replaced)
+				fileCacheLock.Unlock()
+
+				content = []byte(replaced)
+			}
+		}
+
+		// 设置适当的 Content-Type
+		switch {
+		case strings.HasSuffix(path, ".js"):
+			c.Data(200, "application/javascript", content)
+		case strings.HasSuffix(path, ".css"):
+			c.Data(200, "text/css", content)
+		default:
+			c.Data(200, "text/html", content)
+		}
+	}
+
+	// 修改静态文件路由
+	r.NoRoute(func(c *gin.Context) {
+		replaceStaticPlaceholders(c)
+	})
 
 	// 4. 自动打开浏览器
 	openBrowser(fmt.Sprintf("http://localhost:%d", port))

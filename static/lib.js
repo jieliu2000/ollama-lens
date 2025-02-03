@@ -1,3 +1,5 @@
+const OLLAMA_PROXY = '__OLLAMA_PROXY__';
+
 document.addEventListener('DOMContentLoaded', () => {
     const fileInput = document.querySelector('input[type="file"]');
     const previewContainer = document.querySelector('.preview-container');
@@ -107,7 +109,7 @@ function fetchModels() {
     
     modelSelect.innerHTML = '<option value="" disabled selected>正在加载模型...</option>';
     
-    fetch(`${ollamaUrl}/api/tags`)
+    fetch(`${OLLAMA_PROXY}/api/tags`)
         .then(response => {
             if (!response.ok) throw new Error('获取模型失败');
             return response.json();
