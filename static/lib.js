@@ -153,6 +153,14 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelector('input[name="topP"]').value = (appConfig.top_p || 0.9) * 100;
 
     document.querySelector('.reset-defaults-btn').addEventListener('click', resetToDefaults);
+
+    // 模型切换时清除图片
+    modelSelect.addEventListener('change', () => {
+        fileInput.value = '';
+        previewContainer.innerHTML = '';
+        saveConfig();
+        fetchModels();
+    });
 });
 
 function clearHistory() {
@@ -353,15 +361,18 @@ async function sendMessage() {
         sendButton.textContent = '发送中...';
 
         // 处理图片上传
-        const images = await Promise.all(
-            Array.from(fileInput.files).map(file => getImageBase64(file))
-        );
+        let images = [];
+        if (fileInput.files.length > 0) {
+            images = await Promise.all(
+                Array.from(fileInput.files).map(file => getImageBase64(file))
+            );
+        }
 
         // 构建消息对象
         const userMessage = {
             role: "user",
             content: message,
-            images: images
+            ...(images.length > 0 && { images: images }) // 仅在存在图片时添加images字段
         };
 
         // 保存到历史记录
@@ -369,6 +380,10 @@ async function sendMessage() {
             chatHistory.push(userMessage);
         }
         appendMessageToHistory(userMessage, true);
+
+        // 发送后清除图片
+        fileInput.value = '';
+        previewContainer.innerHTML = '';
 
         if (appConfig.streamOutput) {
             // 流式输出处理

@@ -21,9 +21,8 @@ import (
 var (
 	ollamaURL     string
 	ollamaURLLock sync.RWMutex
-	fileCache     = make(map[string][]byte)
-	fileCacheLock sync.RWMutex
-	serverConfig  struct {
+
+	serverConfig struct {
 		host string
 		port int
 	}
@@ -32,7 +31,6 @@ var (
 // 初始化配置
 func initConfig() {
 	viper.SetConfigName("ollama_lens")
-	viper.SetConfigType("yml")
 	viper.AddConfigPath(".")
 	viper.AddConfigPath("$HOME/.config/ollama_lens")
 

@@ -208,22 +208,30 @@
                             <div>
                                 <div class="flex justify-between items-center mb-1">
                                     <label class="block text-sm font-medium">随机程度 (Temperature)</label>
-                                    <span class="text-xs text-gray-500" id="temperatureValue">0.8</span>
+                                    <span class="text-xs text-gray-500" id="temperatureValue">0.70</span>
                                 </div>
                                 <input type="range" min="0" max="100" value="70" 
                                        class="w-full range-sm" name="temperature"
                                        oninput="document.getElementById('temperatureValue').textContent = (this.value/100).toFixed(2)">
-                                <div class="text-xs text-gray-500 mt-1">数值范围0-1（建议0.7-1.0）</div>
+                                <div class="text-xs text-gray-500 mt-1">
+                                    控制输出随机性 (0.0-1.0)<br>
+                                    • 较低值更确定 (如0.2适合事实问答)<br>
+                                    • 较高值更创意 (如0.8适合故事生成)
+                                </div>
                             </div>
                             <div>
                                 <div class="flex justify-between items-center mb-1">
-                                    <label class="block text-sm font-medium">Top P</label>
+                                    <label class="block text-sm font-medium">Top P (核采样)</label>
                                     <span class="text-xs text-gray-500" id="topPValue">0.90</span>
                                 </div>
                                 <input type="range" min="0" max="100" value="90" 
                                        class="w-full range-sm" name="topP"
                                        oninput="document.getElementById('topPValue').textContent = (this.value/100).toFixed(2)">
-                                <div class="text-xs text-gray-500 mt-1">数值范围0-1（建议0.7-0.95）控制候选词的概率累积阈值</div>
+                                <div class="text-xs text-gray-500 mt-1">
+                                    控制候选词范围 (0.0-1.0)<br>
+                                    • 较低值更聚焦 (如0.5保留前50%概率的词)<br>
+                                    • 较高值更多样 (如0.9保留前90%概率的词)
+                                </div>
                             </div>
                             <div>
                                 <label class="block text-sm font-medium mb-1">Top K</label>
