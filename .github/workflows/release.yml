@@ -32,29 +32,25 @@ jobs:
           cd $GITHUB_WORKSPACE
           mkdir -p dist/release
 
-          # 调试：显示目录结构
-          echo "=== dist目录内容 ==="
-          ls -l dist
-          echo "=== static目录内容 ==="
-          ls -l static
-          echo "当前工作目录: $(pwd)"
-
           for binary in dist/*; do
             filename=$(basename $binary)
-            echo "正在打包: $binary"
             
-            # 使用绝对路径
-            zip -r dist/release/${filename%.*}.zip \
-              "$binary" \
-              "static/" \
-              "README.md" \
-              "LICENSE" \
-              "NOTICE"
+            # 创建临时目录并组织文件结构
+            temp_dir=$(mktemp -d)
+            cp "$binary" "$temp_dir/"
+            cp -r static "$temp_dir/"
+            cp README*.md LICENSE NOTICE "$temp_dir/"
             
-            # 验证单个zip包内容
-            echo "=== ${filename%.*}.zip内容 ==="
-            unzip -l "dist/release/${filename%.*}.zip"
+            # 在临时目录中打包
+            cd "$temp_dir"
+            zip -r "$GITHUB_WORKSPACE/dist/release/${filename%.*}.zip" *
+            cd "$GITHUB_WORKSPACE"
+            rm -rf "$temp_dir"
           done
+
+          # 验证打包结果
+          ls -l dist/release/*.zip
+          unzip -l dist/release/*.zip
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
