@@ -20,9 +20,9 @@ Get the latest release from [GitHub Releases](https://github.com/jieliu2000/olla
 
 ### Pre-built Binaries
 
-- **Windows**: [ollamalens-windows-amd64.zip](https://github.com/jieliu2000/ollama-lens/releases/latest/download/ollamalens-windows-amd64.zip)
-- **macOS (Apple Silicon)**: [ollamalens-macos-arm64.zip](https://github.com/jieliu2000/ollama-lens/releases/latest/download/ollamalens-macos-arm64.zip)
-- **Linux**: [ollamalens-linux-amd64.zip](https://github.com/jieliu2000/ollama-lens/releases/latest/download/ollamalens-linux-amd64.zip)
+- **Windows**: [ollama-lens-windows-amd64.zip](https://github.com/jieliu2000/ollama-lens/releases/latest/download/ollama-lens-windows-amd64.zip)
+- **macOS (Apple Silicon)**: [ollama-lens-macos-arm64.zip](https://github.com/jieliu2000/ollama-lens/releases/latest/download/ollama-lens-macos-arm64.zip)
+- **Linux**: [ollama-lens-linux-amd64.zip](https://github.com/jieliu2000/ollama-lens/releases/latest/download/ollama-lens-linux-amd64.zip)
 
 ## Prerequisites
 
@@ -37,11 +37,11 @@ Get the latest release from [GitHub Releases](https://github.com/jieliu2000/olla
 
    ```bash
    # Linux/macOS
-   chmod +x ollamalens-<platform>
-   ./ollamalens-<platform>
+   chmod +x ollama-lens-<platform>
+   ./ollama-lens-<platform>
 
    # Windows
-   ollamalens-windows-amd64.exe
+   ollama-lens-windows-amd64.exe
    ```
 
 4. The web interface will automatically open in your default browser at `http://localhost:6366`
@@ -58,12 +58,12 @@ Get the latest release from [GitHub Releases](https://github.com/jieliu2000/olla
 2. Build the application:
 
    ```bash
-   go build -o ollamalens main.go
+   go build -o ollama-lens main.go
    ```
 
 3. Run with static assets:
    ```bash
-   ./ollamalens
+   ./ollama-lens
    ```
 
 ## License

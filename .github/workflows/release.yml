@@ -23,9 +23,9 @@ jobs:
       - name: Build application
         run: |
           mkdir -p dist
-          GOOS=linux GOARCH=amd64 go build -o dist/ollamalens-linux-amd64 main.go
-          GOOS=darwin GOARCH=arm64 go build -o dist/ollamalens-macos-arm64 main.go
-          GOOS=windows GOARCH=amd64 go build -o dist/ollamalens-windows-amd64.exe main.go
+          GOOS=linux GOARCH=amd64 go build -o dist/ollama-lens-linux-amd64 main.go
+          GOOS=darwin GOARCH=arm64 go build -o dist/ollama-lens-macos-arm64 main.go
+          GOOS=windows GOARCH=amd64 go build -o dist/ollama-lens-windows-amd64.exe main.go
 
       - name: Package artifacts
         run: |

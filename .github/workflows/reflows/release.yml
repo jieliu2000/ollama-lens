@@ -18,10 +18,10 @@ jobs:
         run: |
           mkdir -p dist
           GOOS=${{ matrix.goos }} GOARCH=${{ contains(matrix.platform, 'arm64') && 'arm64' || 'amd64' }} \
-          go build -o dist/ollamalens-${{ matrix.platform }} main.go
+          go build -o dist/ollama-lens-${{ matrix.platform }} main.go
 
       - name: Package artifacts
         run: |
           cd dist
-          binary_name=ollamalens-${{ matrix.platform }}
+          binary_name=ollama-lens-${{ matrix.platform }}
           zip -r ../${binary_name}.zip $binary_name ../static/

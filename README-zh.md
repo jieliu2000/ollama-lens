@@ -20,10 +20,10 @@
 
 ### 预编译版本
 
-- **Windows**: [ollamalens-windows-amd64.zip](https://github.com/jieliu2000/ollama-lens/releases/latest/download/ollamalens-windows-amd64.zip)
-- **macOS (Intel 芯片)**: [ollamalens-macos-amd64.zip](https://github.com/jieliu2000/ollama-lens/releases/latest/download/ollamalens-macos-amd64.zip)
-- **macOS (Apple 芯片)**: [ollamalens-macos-arm64.zip](https://github.com/jieliu2000/ollama-lens/releases/latest/download/ollamalens-macos-arm64.zip)
-- **Linux**: [ollamalens-linux-amd64.zip](https://github.com/jieliu2000/ollama-lens/releases/latest/download/ollamalens-linux-amd64.zip)
+- **Windows**: [ollama-lens-windows-amd64.zip](https://github.com/jieliu2000/ollama-lens/releases/latest/download/ollama-lens-windows-amd64.zip)
+- **macOS (Intel 芯片)**: [ollama-lens-macos-amd64.zip](https://github.com/jieliu2000/ollama-lens/releases/latest/download/ollama-lens-macos-amd64.zip)
+- **macOS (Apple 芯片)**: [ollama-lens-macos-arm64.zip](https://github.com/jieliu2000/ollama-lens/releases/latest/download/ollama-lens-macos-arm64.zip)
+- **Linux**: [ollama-lens-linux-amd64.zip](https://github.com/jieliu2000/ollama-lens/releases/latest/download/ollama-lens-linux-amd64.zip)
 
 ## 运行要求
 
@@ -38,11 +38,11 @@
 
    ```bash
    # Linux/macOS
-   chmod +x ollamalens-<平台>
-   ./ollamalens-<平台>
+   chmod +x ollama-lens-<平台>
+   ./ollama-lens-<平台>
 
    # Windows
-   ollamalens-windows-amd64.exe
+   ollama-lens-windows-amd64.exe
    ```
 
 4. 网页界面将自动在默认浏览器中打开，访问地址：`http://localhost:6366`
@@ -59,12 +59,12 @@
 2. 编译应用：
 
    ```bash
-   go build -o ollamalens main.go
+   go build -o ollama-lens main.go
    ```
 
 3. 运行程序：
    ```bash
-   ./ollamalens
+   ./ollama-lens
    ```
 
 ## 许可证
