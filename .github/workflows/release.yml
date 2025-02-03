@@ -35,21 +35,35 @@ jobs:
           for binary in dist/*; do
             filename=$(basename $binary)
             
-            # 创建临时目录并组织文件结构
+            # 创建临时目录
             temp_dir=$(mktemp -d)
-            cp "$binary" "$temp_dir/"
-            cp -r static "$temp_dir/"
-            cp README*.md LICENSE NOTICE "$temp_dir/"
             
-            # 在临时目录中打包
+            # 复制二进制文件到临时目录根
+            cp -v "$binary" "$temp_dir/$(basename $binary)"
+            
+            # 递归复制static目录
+            if [ -d "static" ]; then
+              mkdir -p "$temp_dir/static"
+              cp -rv static/* "$temp_dir/static/"
+            else
+              echo "Error: static directory not found!"
+              exit 1
+            fi
+            
+            # 复制文档文件
+            cp -v README.md README-zh.md LICENSE NOTICE "$temp_dir/"
+            
+            # 打包操作
             cd "$temp_dir"
             zip -r "$GITHUB_WORKSPACE/dist/release/${filename%.*}.zip" *
+            
+            # 清理临时目录
             cd "$GITHUB_WORKSPACE"
             rm -rf "$temp_dir"
           done
 
-          # 验证打包结果
-          ls -l dist/release/*.zip
+          # 验证结果
+          ls -l dist/release/
           unzip -l dist/release/*.zip
 
       - name: Create Release
