@@ -209,23 +209,61 @@ func startServer(r *gin.Engine) {
 	select {}
 }
 
-// Ollama代理处理
-func ollamaProxyHandler(c *gin.Context) {
-	ollamaURLLock.RLock()
-	target := ollamaURL
-	ollamaURLLock.RUnlock()
+// 获取并验证 Ollama URL
+func getAndValidateOllamaURL(c *gin.Context) (string, error) {
+	// 从请求头中获取 Ollama URL
+	target := c.GetHeader("X-Ollama-URL")
 
-	// 如果未配置则使用默认值
-	if target == "" {
-		target = "http://localhost:11434"
+	// 如果请求头中有指定 URL，则验证其有效性
+	if target != "" {
+		if _, err := url.Parse(target); err != nil {
+			// 如果 URL 无效，则回退到使用配置的 ollamaURL
+			target = ""
+		} else {
+			// 如果 URL 有效，则更新 ollamaURL
+			ollamaURLLock.Lock()
+			ollamaURL = target
+			ollamaURLLock.Unlock()
+		}
 	}
 
-	targetURL, err := url.Parse(target)
+	// 如果请求头中没有指定或指定了无效的 URL，则使用配置的 ollamaURL
+	if target == "" {
+		ollamaURLLock.RLock()
+		target = ollamaURL
+		ollamaURLLock.RUnlock()
+
+		// 如果配置的 ollamaURL 也是空的，则使用默认值
+		if target == "" {
+			target = "http://localhost:11434"
+		}
+	}
+
+	// 最终验证 URL
+	if _, err := url.Parse(target); err != nil {
+		return "", fmt.Errorf("invalid Ollama URL")
+	}
+
+	return target, nil
+}
+
+// Ollama代理处理
+func ollamaProxyHandler(c *gin.Context) {
+	// 获取并验证 Ollama URL
+	target, err := getAndValidateOllamaURL(c)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid Ollama URL configuration"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
+	// 解析目标 URL
+	targetURL, err := url.Parse(target)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid Ollama URL"})
+		return
+	}
+
+	// 创建反向代理
 	proxy := httputil.NewSingleHostReverseProxy(targetURL)
 	proxy.Director = func(req *http.Request) {
 		req.Header = c.Request.Header
@@ -234,6 +272,8 @@ func ollamaProxyHandler(c *gin.Context) {
 		req.URL.Host = targetURL.Host
 		req.URL.Path = c.Param("path")
 	}
+
+	// 处理代理请求
 	proxy.ServeHTTP(c.Writer, c.Request)
 }
 
