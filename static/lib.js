@@ -60,13 +60,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.querySelector('.clear-history-btn').addEventListener('click', clearHistory);
 
-    document.querySelectorAll('input[type="range"]').forEach(slider => {
-        slider.addEventListener('input', function() {
-            if(this.nextElementSibling && this.nextElementSibling.tagName === 'SPAN') {
-                this.nextElementSibling.textContent = (this.value/100).toFixed(1);
-            }
-        });
-    });
+    // 初始化时获取模型列表
+    fetchModels();
 });
 
 function clearHistory() {
@@ -103,4 +98,48 @@ function restoreDefault(input) {
         input.value = defaultValue;
         toggleClearButton(input);
     }
+}
+
+// 新增模型获取函数
+function fetchModels() {
+    const modelSelect = document.getElementById('modelSelect');
+    const ollamaUrl = document.getElementById('ollamaUrl').value;
+    
+    modelSelect.innerHTML = '<option value="" disabled selected>正在加载模型...</option>';
+    
+    fetch(`${ollamaUrl}/api/tags`)
+        .then(response => {
+            if (!response.ok) throw new Error('获取模型失败');
+            return response.json();
+        })
+        .then(data => {
+            modelSelect.innerHTML = data.models
+                .map(model => `<option value="${model.name}">${model.name}</option>`)
+                .join('');
+            
+            if (data.models.length === 0) {
+                modelSelect.innerHTML = '<option value="" disabled>未找到可用模型</option>';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            modelSelect.innerHTML = '<option value="" disabled>无法获取模型列表</option>';
+            alert('获取模型失败，请检查服务器连接');
+        });
+}
+
+// 在saveConfig函数中保存选中的模型
+function saveConfig() {
+    const urlInput = document.getElementById('ollamaUrl');
+    const modelSelect = document.getElementById('modelSelect');
+    
+    fetch('/api/config/ollama', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+            url: urlInput.value,
+            model: modelSelect.value 
+        })
+    })
+    // ... 后续代码保持不变 ...
 } 

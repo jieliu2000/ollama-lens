@@ -157,9 +157,22 @@
                                     </button>
                                 </div>
                             </div>
-                            <div>
+                            <div class="relative">
                                 <label class="block text-sm font-medium mb-1">模型</label>
-                                <input type="text" class="w-full p-2 border rounded-lg" placeholder="llama2">
+                                <div class="flex gap-2">
+                                    <select class="w-full p-2 border rounded-lg bg-white" id="modelSelect">
+                                        <option value="" disabled selected>正在加载模型...</option>
+                                    </select>
+                                    <button 
+                                        class="px-3 py-2 bg-blue-100 hover:bg-blue-200 text-blue-600 rounded-lg transition-colors"
+                                        title="刷新模型列表"
+                                        onclick="fetchModels()">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                                        </svg>
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -171,17 +184,22 @@
                             <div>
                                 <div class="flex justify-between items-center mb-1">
                                     <label class="block text-sm font-medium">随机程度 (Temperature)</label>
-                                    <span class="text-xs text-gray-500">0.8</span>
+                                    <span class="text-xs text-gray-500" id="temperatureValue">0.8</span>
                                 </div>
-                                <input type="range" min="0" max="100" value="80" 
+                                <input type="range" min="0" max="200" value="80" 
                                        class="w-full range-sm" 
-                                       oninput="this.nextElementSibling.textContent = (this.value/100).toFixed(1)">
-                                <div class="text-xs text-gray-500 mt-1">数值越小输出越保守，越大越有创意</div>
+                                       oninput="document.getElementById('temperatureValue').textContent = (this.value/100).toFixed(2)">
+                                <div class="text-xs text-gray-500 mt-1">数值范围0-2（建议0.7-1.0）</div>
                             </div>
                             <div>
-                                <label class="block text-sm font-medium mb-1">Top P</label>
-                                <input type="range" min="0" max="100" value="90" class="w-full">
-                                <div class="text-xs text-gray-500 mt-1">控制输出的多样性</div>
+                                <div class="flex justify-between items-center mb-1">
+                                    <label class="block text-sm font-medium">Top P</label>
+                                    <span class="text-xs text-gray-500" id="topPValue">0.90</span>
+                                </div>
+                                <input type="range" min="0" max="100" value="90" 
+                                       class="w-full range-sm"
+                                       oninput="document.getElementById('topPValue').textContent = (this.value/100).toFixed(2)">
+                                <div class="text-xs text-gray-500 mt-1">数值范围0-1（建议0.7-0.95）控制候选词的概率累积阈值</div>
                             </div>
                             <div>
                                 <label class="block text-sm font-medium mb-1">Top K</label>
