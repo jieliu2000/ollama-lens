@@ -300,6 +300,28 @@ async function getImageBase64(file) {
     });
 }
 
+// 新增显示消息的函数
+function appendMessageToHistory(message, isUser = true) {
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `flex flex-col items-${isUser ? 'end' : 'start'}`;
+    
+    const contentHTML = isUser 
+        ? `<div class="bg-blue-600 text-white rounded-xl p-3 max-w-[85%] shadow-md">
+              <p class="leading-relaxed">${message.content}</p>
+              <div class="text-xs text-blue-100/80 mt-1">${new Date().toLocaleTimeString()}</div>
+           </div>`
+        : `<div class="bg-gray-50 border border-gray-100 rounded-xl p-3 max-w-[85%] shadow-sm">
+              <p class="leading-relaxed text-gray-700">${message.content}</p>
+              <div class="text-xs text-gray-500/80 mt-1">${new Date().toLocaleTimeString()}</div>
+           </div>`;
+    
+    messageDiv.innerHTML = contentHTML;
+    chatHistoryContainer.querySelector('.space-y-3').appendChild(messageDiv);
+    // 自动滚动到底部
+    chatHistoryContainer.scrollTop = chatHistoryContainer.scrollHeight;
+}
+
+// 修改 sendMessage 函数
 async function sendMessage() {
     const message = inputTextarea.value.trim();
     if (!message) return;
@@ -324,42 +346,82 @@ async function sendMessage() {
         if(appConfig.useHistory) {
             chatHistory.push(userMessage);
         }
+        appendMessageToHistory(userMessage, true);
 
-        const response = await api.post('/ollama/api/chat', {
-            model: modelSelect.value,
-            messages: appConfig.useHistory ? chatHistory : [userMessage],
-            stream: appConfig.streamOutput,
-            options: {
-                temperature: appConfig.temperature,
-                top_p: appConfig.top_p,
-                top_k: appConfig.top_k,
-                repeat_penalty: appConfig.repeat_penalty,
-                num_ctx: appConfig.num_ctx
+        if (appConfig.streamOutput) {
+            // 流式输出处理
+            let fullResponse = '';
+            let assistantMessage = {
+                role: "assistant",
+                content: ""
+            };
+            chatHistory.push(assistantMessage);
+            
+            const streamResponse = await api.post('/ollama/api/chat', {
+                model: modelSelect.value,
+                messages: appConfig.useHistory ? chatHistory : [userMessage],
+                stream: appConfig.streamOutput,
+                options: {
+                    temperature: appConfig.temperature,
+                    top_p: appConfig.top_p,
+                    top_k: appConfig.top_k,
+                    repeat_penalty: appConfig.repeat_penalty,
+                    num_ctx: appConfig.num_ctx
+                }
+            }, {
+                responseType: 'stream'
+            });
+
+            const reader = streamResponse.data.getReader();
+            const decoder = new TextDecoder();
+            
+            while(true) {
+                const { done, value } = await reader.read();
+                if(done) break;
+                
+                const chunk = decoder.decode(value);
+                const lines = chunk.split('\n');
+                
+                lines.forEach(line => {
+                    try {
+                        const data = JSON.parse(line);
+                        fullResponse += data.message.content;
+                        assistantMessage.content = fullResponse;
+                        updateLastMessage(fullResponse);
+                    } catch(e) {
+                        console.error('解析错误:', e);
+                    }
+                });
             }
-        }, {
-            headers: {
-                'X-Ollama-URL': appConfig.ollamaUrl
-            }
-        });
-
-        // 保存AI响应到历史
-        const assistantMessage = {
-            role: "assistant",
-            content: response.data.message
-        };
-        chatHistory.push(assistantMessage);
-
-        // 处理响应
-        const responseDiv = document.createElement('div');
-        responseDiv.className = 'flex flex-col items-start';
-        responseDiv.innerHTML = `
-            <div class="bg-gray-50 border border-gray-100 rounded-xl p-3 max-w-[85%] shadow-sm">
-                <p class="leading-relaxed text-gray-700">${response.data.message}</p>
-                <div class="text-xs text-gray-500/80 mt-1">${new Date().toLocaleTimeString()}</div>
-            </div>
-        `;
-        chatHistoryContainer.querySelector('.space-y-3').appendChild(responseDiv);
-        inputTextarea.value = '';
+        } else {
+            // 普通请求处理
+            const response = await api.post('/ollama/api/chat', {
+                model: modelSelect.value,
+                messages: appConfig.useHistory ? chatHistory : [userMessage],
+                stream: appConfig.streamOutput,
+                options: {
+                    temperature: appConfig.temperature,
+                    top_p: appConfig.top_p,
+                    top_k: appConfig.top_k,
+                    repeat_penalty: appConfig.repeat_penalty,
+                    num_ctx: appConfig.num_ctx
+                }
+            }, {
+                headers: {
+                    'X-Ollama-URL': appConfig.ollamaUrl
+                }
+            });
+            appendMessageToHistory({
+                content: response.data.message.content
+            }, false);
+            
+            // 保存AI响应到历史
+            const assistantMessage = {
+                role: "assistant",
+                content: response.data.message.content
+            };
+            chatHistory.push(assistantMessage);
+        }
 
     } catch (error) {
         console.error('Error:', error);
@@ -395,5 +457,14 @@ function resetToDefaults() {
         // 更新界面显示值
         document.getElementById('temperatureValue').textContent = '0.70';
         document.getElementById('topPValue').textContent = '0.90';
+    }
+}
+
+// 新增更新最后一条消息的函数
+function updateLastMessage(content) {
+    const lastMessage = chatHistoryContainer.querySelector('.message:last-child');
+    if(lastMessage) {
+        lastMessage.querySelector('p').textContent = content;
+        chatHistoryContainer.scrollTop = chatHistoryContainer.scrollHeight;
     }
 }
