@@ -158,13 +158,16 @@ document.addEventListener('DOMContentLoaded', () => {
 function clearHistory() {
     if(confirm('确定要清除所有对话历史吗？此操作不可恢复！')) {
         chatHistoryContainer.innerHTML = `
-            <div class="text-center py-6 text-gray-400 text-sm">
-                <svg class="w-8 h-8 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                </svg>
-                已成功清空对话历史
+            <div class="space-y-3">
+                <div class="text-center py-6 text-gray-400 text-sm temporary-clear-message">
+                    <svg class="w-8 h-8 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                    </svg>
+                    已成功清空对话历史
+                </div>
             </div>
         `;
+        chatHistory = [];
     }
 }
 
@@ -302,6 +305,25 @@ async function getImageBase64(file) {
 
 // 新增显示消息的函数
 function appendMessageToHistory(message, isUser = true) {
+    // 确保消息容器存在
+    let messagesContainer = chatHistoryContainer.querySelector('.space-y-3');
+    if (!messagesContainer) {
+        messagesContainer = document.createElement('div');
+        messagesContainer.className = 'space-y-3';
+        chatHistoryContainer.appendChild(messagesContainer);
+    } else {
+        // 首次发送消息时清除欢迎界面
+        const welcomeMessage = messagesContainer.querySelector('.welcome-message');
+        if (welcomeMessage) {
+            welcomeMessage.remove();
+        }
+        // 清除临时提示信息
+        const tempMessage = messagesContainer.querySelector('.temporary-clear-message');
+        if (tempMessage) {
+            tempMessage.remove();
+        }
+    }
+    
     const messageDiv = document.createElement('div');
     messageDiv.className = `flex flex-col items-${isUser ? 'end' : 'start'}`;
     
@@ -316,7 +338,7 @@ function appendMessageToHistory(message, isUser = true) {
            </div>`;
     
     messageDiv.innerHTML = contentHTML;
-    chatHistoryContainer.querySelector('.space-y-3').appendChild(messageDiv);
+    messagesContainer.appendChild(messageDiv);
     // 自动滚动到底部
     chatHistoryContainer.scrollTop = chatHistoryContainer.scrollHeight;
 }
