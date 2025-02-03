@@ -34,30 +34,32 @@ jobs:
           for binary in dist/*; do
             filename=$(basename $binary)
             
-            # 创建临时目录
             temp_dir=$(mktemp -d)
             
-            # 复制二进制文件（单个文件）
+            # 复制文件到临时目录
             cp -v "$binary" "$temp_dir/"
-            
-            # 递归复制static目录
             cp -rv static/ "$temp_dir/static/"
-            
-            # 复制文档文件
             cp -v README.md README-zh.md LICENSE NOTICE "$temp_dir/"
-            
-            # 打包到dist目录
+
+            # 打包并检查退出状态
             cd "$temp_dir"
-            zip -9 -r "$GITHUB_WORKSPACE/dist/${filename%.*}.zip" *
-            
-            # 清理临时目录
+            if ! zip -9 -r "$GITHUB_WORKSPACE/dist/${filename%.*}.zip" *; then
+              echo "打包失败: $filename"
+              exit 1
+            fi
+
             cd "$GITHUB_WORKSPACE"
             rm -rf "$temp_dir"
           done
 
           # 验证结果
+          echo "=== 最终文件列表 ==="
           ls -l dist/
-          unzip -l dist/*.zip
+          echo "=== 压缩包验证 ==="
+          for zipfile in dist/*.zip; do
+            echo "验证 $zipfile:"
+            unzip -tq "$zipfile" || exit 1
+          done
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
