@@ -48,7 +48,7 @@ jobs:
             
             # 打包到dist目录
             cd "$temp_dir"
-            zip -r "$GITHUB_WORKSPACE/dist/${filename%.*}.zip" .
+            zip -9 -r "$GITHUB_WORKSPACE/dist/${filename%.*}.zip" *
             
             # 清理临时目录
             cd "$GITHUB_WORKSPACE"
