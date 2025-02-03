@@ -89,8 +89,8 @@ func validateFile(c *gin.Context, fullPath string) bool {
 		return false
 	}
 
+	// 如果是目录，检查是否存在 index.html
 	if fileInfo.IsDir() {
-		// 如果是目录，重定向到该目录下的 index.html
 		if _, err := os.Stat(filepath.Join(fullPath, "index.html")); err == nil {
 			c.Redirect(http.StatusMovedPermanently, "/static/"+filepath.Join(strings.TrimPrefix(fullPath, "static"), "index.html"))
 			return false
@@ -159,14 +159,12 @@ func getContentType(path string) string {
 	case strings.HasSuffix(path, ".svg"):
 		return "image/svg+xml"
 	default:
-		return "" // 让浏览器自动检测
+		return ""
 	}
 }
 
 func main() {
 	initConfig()
-
-	// 初始化服务器配置
 	serverConfig.host = viper.GetString("server.host")
 	serverConfig.port = viper.GetInt("server.port")
 	ollamaURL = viper.GetString("ollama.default_url")
@@ -177,15 +175,10 @@ func main() {
 }
 
 func setupRoutes(r *gin.Engine) {
-	// 修改静态文件处理路由，使用通配符 /*filepath
 	r.GET("/static/*filepath", handleStaticFile)
-
-	// 主页重定向
 	r.GET("/", func(c *gin.Context) {
 		c.Redirect(http.StatusMovedPermanently, "/static/index.html")
 	})
-
-	// API 路由
 	r.Any("/ollama/*path", ollamaProxyHandler)
 	r.POST("/api/config/ollama", updateOllamaConfigHandler)
 	r.GET("/api/config/ollama", getOllamaConfigHandler)
@@ -277,7 +270,6 @@ func ollamaProxyHandler(c *gin.Context) {
 	proxy.ServeHTTP(c.Writer, c.Request)
 }
 
-// 自动打开浏览器
 func openBrowser(url string) {
 	var cmd string
 	var args []string
@@ -288,7 +280,7 @@ func openBrowser(url string) {
 		args = []string{"/c", "start"}
 	case "darwin":
 		cmd = "open"
-	default: // "linux", "freebsd", "openbsd", "netbsd"
+	default:
 		cmd = "xdg-open"
 	}
 	args = append(args, url)
@@ -298,19 +290,16 @@ func openBrowser(url string) {
 	}
 }
 
-// 新增配置更新处理
 func updateOllamaConfigHandler(c *gin.Context) {
-	type configRequest struct {
+	var req struct {
 		URL string `json:"url"`
 	}
 
-	var req configRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
-	// 验证URL格式
 	if _, err := url.ParseRequestURI(req.URL); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid URL format"})
 		return
@@ -323,7 +312,6 @@ func updateOllamaConfigHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Configuration updated"})
 }
 
-// 新增配置获取处理
 func getOllamaConfigHandler(c *gin.Context) {
 	ollamaURLLock.RLock()
 	defer ollamaURLLock.RUnlock()
