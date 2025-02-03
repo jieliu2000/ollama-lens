@@ -49,7 +49,7 @@ jobs:
           draft: false
           prerelease: false
 
-      - name: Upload Release Asset
+      - name: Upload Release Assets
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -59,4 +59,5 @@ jobs:
             ollamalens-linux-amd64.zip
             ollamalens-macos-arm64.zip
             ollamalens-windows-amd64.zip
+          asset_name: ${{ github.workflow }}-${{ runner.os }}.zip
           asset_content_type: application/zip
