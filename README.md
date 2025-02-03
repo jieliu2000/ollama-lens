@@ -21,7 +21,6 @@ Get the latest release from [GitHub Releases](https://github.com/jieliu2000/olla
 ### Pre-built Binaries
 
 - **Windows**: [ollamalens-windows-amd64.zip](https://github.com/jieliu2000/ollama-lens/releases/latest/download/ollamalens-windows-amd64.zip)
-- **macOS (Intel)**: [ollamalens-macos-amd64.zip](https://github.com/jieliu2000/ollama-lens/releases/latest/download/ollamalens-macos-amd64.zip)
 - **macOS (Apple Silicon)**: [ollamalens-macos-arm64.zip](https://github.com/jieliu2000/ollama-lens/releases/latest/download/ollamalens-macos-arm64.zip)
 - **Linux**: [ollamalens-linux-amd64.zip](https://github.com/jieliu2000/ollama-lens/releases/latest/download/ollamalens-linux-amd64.zip)
 
