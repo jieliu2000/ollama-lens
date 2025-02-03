@@ -1,4 +1,6 @@
-# Ollama Lens
+# OllamaLens
+
+[English](README.md) | [中文](README-zh.md)
 
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/jieliu2000/ollama-lens)
 ![License](https://img.shields.io/badge/License-MIT-blue.svg)
