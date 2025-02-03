@@ -31,8 +31,11 @@ jobs:
         run: |
           cd dist
           for binary in *; do
-            # 在仓库根目录生成zip文件
-            zip -r ../${binary%.*}.zip $binary ../static/
+            zip -r ../${binary%.*}.zip $binary \
+              ../static/ \
+              ../README.md \
+              ../LICENSE \
+              ../NOTICE
           done
           cd ..
           ls -l *.zip  # 验证文件生成位置
