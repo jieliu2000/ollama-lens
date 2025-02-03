@@ -31,11 +31,7 @@ jobs:
         run: |
           cd dist
           for binary in *; do
-            zip -r ../${binary%.*}.zip $binary \
-              ../static/ \
-              ../README.md \
-              ../LICENSE \
-              ../NOTICE
+            zip -r ../${binary%.*}.zip $binary ../static/  ../README.md  ../LICENSE   ../NOTICE
           done
           cd ..
           ls -l *.zip  # 验证文件生成位置
