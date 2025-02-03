@@ -32,21 +32,29 @@ jobs:
           cd $GITHUB_WORKSPACE
           mkdir -p dist/release
 
-          # 遍历dist目录中的二进制文件
+          # 调试：显示目录结构
+          echo "=== dist目录内容 ==="
+          ls -l dist
+          echo "=== static目录内容 ==="
+          ls -l static
+          echo "当前工作目录: $(pwd)"
+
           for binary in dist/*; do
             filename=$(basename $binary)
-            # 使用递归模式包含static目录
+            echo "正在打包: $binary"
+            
+            # 使用绝对路径
             zip -r dist/release/${filename%.*}.zip \
-              $binary \
-              static/ \
-              README.md \
-              LICENSE \
-              NOTICE
+              "$binary" \
+              "static/" \
+              "README.md" \
+              "LICENSE" \
+              "NOTICE"
+            
+            # 验证单个zip包内容
+            echo "=== ${filename%.*}.zip内容 ==="
+            unzip -l "dist/release/${filename%.*}.zip"
           done
-
-          # 验证打包结果
-          ls -l dist/release/*.zip
-          unzip -l dist/release/*.zip  # 新增解压查看内容
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
