@@ -158,8 +158,6 @@ func setupRoutes(r *gin.Engine) {
 		c.Redirect(http.StatusMovedPermanently, "/static/index.html")
 	})
 	r.Any("/ollama/*path", ollamaProxyHandler)
-	r.POST("/api/config/ollama", updateOllamaConfigHandler)
-	r.GET("/api/config/ollama", getOllamaConfigHandler)
 }
 
 func startServer(r *gin.Engine) {
@@ -266,32 +264,4 @@ func openBrowser(url string) {
 	if err := exec.Command(cmd, args...).Start(); err != nil {
 		log.Printf("Failed to open browser: %v", err)
 	}
-}
-
-func updateOllamaConfigHandler(c *gin.Context) {
-	var req struct {
-		URL string `json:"url"`
-	}
-
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
-		return
-	}
-
-	if _, err := url.ParseRequestURI(req.URL); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid URL format"})
-		return
-	}
-
-	ollamaURLLock.Lock()
-	ollamaURL = req.URL
-	ollamaURLLock.Unlock()
-
-	c.JSON(http.StatusOK, gin.H{"message": "Configuration updated"})
-}
-
-func getOllamaConfigHandler(c *gin.Context) {
-	ollamaURLLock.RLock()
-	defer ollamaURLLock.RUnlock()
-	c.JSON(http.StatusOK, gin.H{"url": ollamaURL})
 }

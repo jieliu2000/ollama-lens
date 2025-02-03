@@ -9,6 +9,17 @@ let chatHistory;
 let fileInput;
 let previewContainer;
 
+// 在全局作用域添加配置对象
+const CONFIG_KEY = 'ollamaLensConfig';
+let appConfig = {
+    ollamaUrl: 'http://localhost:11434',
+    model: '',
+    useHistory: true,
+    formatOutput: false,
+    streamOutput: true,
+    historyLength: 5
+};
+
 // 创建一个 axios 实例，设置基础配置
 const api = axios.create({
     timeout: 30000, // 30秒超时
@@ -85,7 +96,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.querySelector('.clear-history-btn').addEventListener('click', clearHistory);
 
-    // 初始化时获取模型列表
+    // 先加载本地配置
+    loadConfig();
+    
+    // 然后获取模型列表
     fetchModels();
 
     // 添加点击事件监听
@@ -97,6 +111,47 @@ document.addEventListener('DOMContentLoaded', () => {
             sendMessage();
         }
     });
+
+    // 为所有配置控件添加输入事件监听
+    const configControls = [
+        ollamaUrlInput,
+        modelSelect,
+        document.getElementById('historyToggle'),
+        document.querySelector('input[name="formatOutput"]'),
+        document.querySelector('input[name="streamOutput"]'),
+        document.querySelector('input[name="historyLength"]'),
+        document.querySelector('input[name="temperature"]'),
+        document.querySelector('input[name="topP"]'),
+        document.querySelector('input[name="topK"]'),
+        document.querySelector('input[name="repeatPenalty"]'),
+        document.querySelector('input[name="contextLength"]')
+    ];
+
+    configControls.forEach(control => {
+        control.addEventListener('change', () => {
+            saveConfig();
+            if (control === modelSelect) {
+                fetchModels();
+            }
+        });
+    });
+
+    // 添加Temperature和Top P的输入事件监听
+    document.querySelector('input[name="temperature"]').addEventListener('input', function() {
+        document.getElementById('temperatureValue').textContent = (this.value / 100).toFixed(2);
+    });
+
+    document.querySelector('input[name="topP"]').addEventListener('input', function() {
+        document.getElementById('topPValue').textContent = (this.value / 100).toFixed(2);
+    });
+
+    // 初始化显示值
+    document.getElementById('temperatureValue').textContent = (appConfig.temperature || 0.7).toFixed(2);
+    document.getElementById('topPValue').textContent = (appConfig.top_p || 0.9).toFixed(2);
+    document.querySelector('input[name="temperature"]').value = (appConfig.temperature || 0.7) * 100;
+    document.querySelector('input[name="topP"]').value = (appConfig.top_p || 0.9) * 100;
+
+    document.querySelector('.reset-defaults-btn').addEventListener('click', resetToDefaults);
 });
 
 function clearHistory() {
@@ -145,6 +200,9 @@ function fetchModels() {
                 .map(model => `<option value="${model.name}">${model.name}</option>`)
                 .join('');
             
+            // 模型加载完成后恢复选中状态
+            restoreModelSelection();
+            
             if (data.models.length === 0) {
                 modelSelect.innerHTML = '<option value="" disabled>未找到可用模型</option>';
             }
@@ -156,28 +214,84 @@ function fetchModels() {
         });
 }
 
+// 新增模型选中状态恢复函数
+function restoreModelSelection() {
+    const savedModel = localStorage.getItem(CONFIG_KEY) 
+        ? JSON.parse(localStorage.getItem(CONFIG_KEY)).model
+        : null;
+    
+    if (savedModel) {
+        const optionExists = Array.from(modelSelect.options).some(
+            opt => opt.value === savedModel
+        );
+        
+        if (optionExists) {
+            modelSelect.value = savedModel;
+            return;
+        }
+    }
+    
+    // 默认选中第一个可用模型
+    if (modelSelect.options.length > 1) {
+        modelSelect.selectedIndex = 1;
+    }
+}
+
+// 新增加载配置函数
+function loadConfig() {
+    const savedConfig = localStorage.getItem(CONFIG_KEY);
+    if (savedConfig) {
+        appConfig = JSON.parse(savedConfig);
+        ollamaUrlInput.value = appConfig.ollamaUrl;
+        modelSelect.value = appConfig.model;
+        document.getElementById('historyToggle').checked = appConfig.useHistory;
+        document.querySelector('input[name="formatOutput"]').checked = appConfig.formatOutput;
+        document.querySelector('input[name="streamOutput"]').checked = appConfig.streamOutput;
+        document.querySelector('input[name="historyLength"]').value = appConfig.historyLength;
+        document.querySelector('input[name="temperature"]').value = appConfig.temperature * 100;
+        document.querySelector('input[name="topP"]').value = appConfig.top_p * 100;
+        document.querySelector('input[name="topK"]').value = appConfig.top_k;
+        document.querySelector('input[name="repeatPenalty"]').value = appConfig.repeat_penalty;
+        document.querySelector('input[name="contextLength"]').value = appConfig.num_ctx;
+        // 触发change事件以更新UI
+        if (appConfig.model) {
+            modelSelect.dispatchEvent(new Event('change'));
+        }
+        
+        // 延迟设置模型值，等待模型列表加载完成
+        setTimeout(() => {
+            if (appConfig.model && modelSelect.querySelector(`option[value="${appConfig.model}"]`)) {
+                modelSelect.value = appConfig.model;
+            } else {
+                modelSelect.value = '';
+            }
+        }, 500);
+    }
+}
+
 // 修改 saveConfig 函数
 function saveConfig() {
-    api.post('/api/config/ollama', {
-        url: ollamaUrlInput.value,
-        model: modelSelect.value
-    })
-    .then(response => {
-        fetchModels();
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('保存配置失败，请检查输入是否正确');
-    });
+    appConfig = {
+        ollamaUrl: ollamaUrlInput.value,
+        model: modelSelect.value || '',
+        useHistory: document.getElementById('historyToggle').checked,
+        formatOutput: document.querySelector('input[name="formatOutput"]').checked,
+        streamOutput: document.querySelector('input[name="streamOutput"]').checked,
+        historyLength: parseInt(document.querySelector('input[name="historyLength"]').value),
+        temperature: parseFloat(document.querySelector('input[name="temperature"]').value) / 100,
+        top_p: parseFloat(document.querySelector('input[name="topP"]').value) / 100,
+        top_k: parseInt(document.querySelector('input[name="topK"]').value),
+        repeat_penalty: parseFloat(document.querySelector('input[name="repeatPenalty"]').value),
+        num_ctx: parseInt(document.querySelector('input[name="contextLength"]').value)
+    };
+    
+    localStorage.setItem(CONFIG_KEY, JSON.stringify(appConfig));
 }
 
 // 发送消息函数
 async function sendMessage() {
     const message = inputTextarea.value.trim();
-    if (!message) {
-        alert('请输入消息内容');
-        return;
-    }
+    if (!message) return;
 
     try {
         sendButton.disabled = true;
@@ -185,10 +299,17 @@ async function sendMessage() {
 
         const response = await api.post('/ollama/api/chat', {
             message: message,
-            model: modelSelect.value
+            model: modelSelect.value,
+            options: {
+                temperature: parseFloat(document.querySelector('input[type="range"][name="temperature"]').value) / 100,
+                top_p: parseFloat(document.querySelector('input[type="range"][name="topP"]').value) / 100,
+                top_k: parseInt(document.querySelector('input[type="number"][name="topK"]').value),
+                repeat_penalty: parseFloat(document.querySelector('input[type="number"][name="repeatPenalty"]').value),
+                num_ctx: parseInt(document.querySelector('input[type="number"][name="contextLength"]').value)
+            }
         }, {
             headers: {
-                'X-Ollama-URL': ollamaUrlInput.value || 'http://localhost:11434'
+                'X-Ollama-URL': appConfig.ollamaUrl
             }
         });
 
@@ -210,5 +331,33 @@ async function sendMessage() {
     } finally {
         sendButton.disabled = false;
         sendButton.textContent = '发送';
+    }
+}
+
+// 新增重置默认设置函数
+function resetToDefaults() {
+    if (confirm('确定要恢复所有设置为默认值吗？当前设置将会丢失！')) {
+        localStorage.removeItem(CONFIG_KEY);
+        appConfig = {
+            ollamaUrl: 'http://localhost:11434',
+            model: '',
+            useHistory: true,
+            formatOutput: false,
+            streamOutput: true,
+            historyLength: 5,
+            temperature: 0.7,
+            top_p: 0.9,
+            top_k: 40,
+            repeat_penalty: 1.1,
+            num_ctx: 4096
+        };
+        
+        // 重新加载配置
+        loadConfig();
+        // 刷新模型列表
+        fetchModels();
+        // 更新界面显示值
+        document.getElementById('temperatureValue').textContent = '0.70';
+        document.getElementById('topPValue').textContent = '0.90';
     }
 }

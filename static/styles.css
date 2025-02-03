@@ -53,4 +53,27 @@
 #ollamaUrl:not([value="http://localhost:11434"]) + #clearUrlBtn {
     opacity: 1;
     pointer-events: auto;
+}
+
+/* 重置按钮样式 */
+.reset-defaults-btn {
+    padding: 6px 12px;
+    border-radius: 8px;
+    background: rgba(239, 68, 68, 0.1);
+    transition: all 0.2s ease;
+}
+
+.reset-defaults-btn:hover {
+    background: rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.reset-defaults-btn:active {
+    transform: translateY(0);
+}
+
+.reset-defaults-btn svg {
+    stroke: #ef4444;
 } 

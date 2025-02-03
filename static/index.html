@@ -113,13 +113,13 @@
                         </div>
                         <div>
                             <label class="inline-flex items-center">
-                                <input type="checkbox" class="form-checkbox h-5 w-5 text-blue-600">
+                                <input type="checkbox" class="form-checkbox h-5 w-5 text-blue-600" name="formatOutput">
                                 <span class="ml-2">格式化输出</span>
                             </label>
                         </div>
                         <div>
                             <label class="inline-flex items-center">
-                                <input type="checkbox" class="form-checkbox h-5 w-5 text-blue-600">
+                                <input type="checkbox" class="form-checkbox h-5 w-5 text-blue-600" name="streamOutput">
                                 <span class="ml-2">流式输出</span>
                             </label>
                         </div>
@@ -129,7 +129,7 @@
                                 <span class="text-xs text-gray-500" id="historyLengthDisplay">5 轮</span>
                             </div>
                             <input type="range" min="1" max="10" value="5" 
-                                   class="w-full range-sm"
+                                   class="w-full range-sm" name="historyLength"
                                    oninput="document.getElementById('historyLengthDisplay').textContent = this.value + ' 轮'">
                             <div class="text-xs text-gray-500 mt-1">设置保留的历史对话轮数（0表示不保留）</div>
                         </div>
@@ -140,7 +140,17 @@
             <!-- 右侧配置区域 -->
             <div class="w-full md:w-80 config-panel">
                 <div class="bg-white rounded-xl shadow-lg p-3 md:p-5">
-                    <h2 class="text-lg md:text-xl font-semibold mb-3 md:mb-5 text-gray-700">模型配置</h2>
+                    <div class="flex justify-between items-center mb-3 md:mb-5">
+                        <h2 class="text-lg md:text-xl font-semibold text-gray-700">模型配置</h2>
+                        <button class="reset-defaults-btn flex items-center text-sm text-gray-500 hover:text-red-600 transition-colors"
+                                title="恢复所有设置为默认值">
+                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                            </svg>
+                            恢复默认
+                        </button>
+                    </div>
                     
                     <!-- 连接设置 -->
                     <div class="mb-6 space-y-4">
@@ -200,10 +210,10 @@
                                     <label class="block text-sm font-medium">随机程度 (Temperature)</label>
                                     <span class="text-xs text-gray-500" id="temperatureValue">0.8</span>
                                 </div>
-                                <input type="range" min="0" max="200" value="80" 
-                                       class="w-full range-sm" 
+                                <input type="range" min="0" max="100" value="70" 
+                                       class="w-full range-sm" name="temperature"
                                        oninput="document.getElementById('temperatureValue').textContent = (this.value/100).toFixed(2)">
-                                <div class="text-xs text-gray-500 mt-1">数值范围0-2（建议0.7-1.0）</div>
+                                <div class="text-xs text-gray-500 mt-1">数值范围0-1（建议0.7-1.0）</div>
                             </div>
                             <div>
                                 <div class="flex justify-between items-center mb-1">
@@ -211,24 +221,26 @@
                                     <span class="text-xs text-gray-500" id="topPValue">0.90</span>
                                 </div>
                                 <input type="range" min="0" max="100" value="90" 
-                                       class="w-full range-sm"
+                                       class="w-full range-sm" name="topP"
                                        oninput="document.getElementById('topPValue').textContent = (this.value/100).toFixed(2)">
                                 <div class="text-xs text-gray-500 mt-1">数值范围0-1（建议0.7-0.95）控制候选词的概率累积阈值</div>
                             </div>
                             <div>
                                 <label class="block text-sm font-medium mb-1">Top K</label>
-                                <input type="number" class="w-full p-2 border rounded-lg" value="40">
+                                <input type="number" class="w-full p-2 border rounded-lg" 
+                                       value="40" min="1" max="100" step="1" name="topK">
                                 <div class="text-xs text-gray-500 mt-1">每次生成时考虑的词数</div>
                             </div>
                             <div>
                                 <label class="block text-sm font-medium mb-1">Repeat Penalty</label>
-                                <input type="number" step="0.1" class="w-full p-2 border rounded-lg" value="1.1">
+                                <input type="number" class="w-full p-2 border rounded-lg" 
+                                       value="1.1" min="1.0" max="2.0" step="0.1" name="repeatPenalty">
                                 <div class="text-xs text-gray-500 mt-1">防止重复生成的惩罚系数</div>
                             </div>
                             <div>
                                 <label class="block text-sm font-medium mb-1">上下文长度 (tokens)</label>
                                 <input type="number" class="w-full p-2 border rounded-lg" 
-                                       value="4096" min="512" max="16384" step="512">
+                                       value="4096" min="512" max="16384" step="512" name="contextLength">
                                 <div class="text-xs text-gray-500 mt-1">控制模型记忆长度（建议值：2048-8192）</div>
                             </div>
                         </div>
@@ -238,39 +250,6 @@
         </div>
     </div>
     <script src="axios.min.js"></script>
-
     <script src="lib.js"></script>
-    <div class="config-panel">
-        <input type="text" id="ollamaUrl" placeholder="Ollama服务器地址">
-        <button onclick="saveConfig()">保存配置</button>
-    </div>
-
-    <script>
-    // 页面加载时获取当前配置
-    window.addEventListener('load', () => {
-        fetch('/api/config/ollama')
-            .then(r => r.json())
-            .then(data => {
-                document.getElementById('ollamaUrl').value = data.url || 'http://localhost:11434';
-            });
-    });
-
-    // 保存配置
-    function saveConfig() {
-        const urlInput = document.getElementById('ollamaUrl');
-        fetch('/api/config/ollama', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ url: urlInput.value })
-        })
-        .then(r => r.json())
-        .then(data => {
-            alert('配置已保存');
-            location.reload(); // 可选：重新加载页面使配置生效
-        });
-    }
-    </script>
 </body>
 </html> 
