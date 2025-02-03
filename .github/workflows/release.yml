@@ -3,13 +3,13 @@ name: Create Release
 on:
   push:
     tags:
-      - "v*" # 匹配以v开头的标签，例如v1.0.0
+      - "v*"
 
 jobs:
   build-and-release:
     runs-on: ubuntu-latest
     permissions:
-      contents: write # 需要权限来创建release和上传资源
+      contents: write
 
     steps:
       - name: Checkout code
@@ -18,7 +18,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
-          go-version: "1.21" # 根据你的Go版本调整
+          go-version: "1.21"
 
       - name: Build application
         run: |
@@ -29,12 +29,24 @@ jobs:
 
       - name: Package artifacts
         run: |
-          cd dist
-          for binary in *; do
-            zip -r ../${binary%.*}.zip $binary ../static/  ../README.md  ../LICENSE   ../NOTICE
+          cd $GITHUB_WORKSPACE
+          mkdir -p dist/release
+
+          # 遍历dist目录中的二进制文件
+          for binary in dist/*; do
+            filename=$(basename $binary)
+            # 使用递归模式包含static目录
+            zip -r dist/release/${filename%.*}.zip \
+              $binary \
+              static/ \
+              README.md \
+              LICENSE \
+              NOTICE
           done
-          cd ..
-          ls -l *.zip  # 验证文件生成位置
+
+          # 验证打包结果
+          ls -l dist/release/*.zip
+          unzip -l dist/release/*.zip  # 新增解压查看内容
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
@@ -44,4 +56,4 @@ jobs:
           tag_name: ${{ github.ref_name }}
           name: Release ${{ github.ref_name }}
           files: |
-            ollamalens-*.zip
+            dist/release/*.zip
