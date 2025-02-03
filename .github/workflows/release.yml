@@ -31,15 +31,18 @@ jobs:
         run: |
           cd dist
           for binary in *; do
+            # 在仓库根目录生成zip文件
             zip -r ../${binary%.*}.zip $binary ../static/
           done
+          cd ..
+          ls -l *.zip  # 验证文件生成位置
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag: ${{ github.ref_name }}
+          tag_name: ${{ github.ref_name }}
           name: Release ${{ github.ref_name }}
           files: |
-            dist/ollamalens-*.zip
+            ollamalens-*.zip
