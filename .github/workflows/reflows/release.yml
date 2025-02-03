@@ -1,0 +1,27 @@
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - platform: linux-amd64
+            goos: linux
+          - platform: macos-arm64
+            goos: darwin
+          - platform: windows-amd64
+            goos: windows
+    permissions:
+      contents: write
+
+    steps:
+      - name: Build application
+        run: |
+          mkdir -p dist
+          GOOS=${{ matrix.goos }} GOARCH=${{ contains(matrix.platform, 'arm64') && 'arm64' || 'amd64' }} \
+          go build -o dist/ollamalens-${{ matrix.platform }} main.go
+
+      - name: Package artifacts
+        run: |
+          cd dist
+          binary_name=ollamalens-${{ matrix.platform }}
+          zip -r ../${binary_name}.zip $binary_name ../static/
