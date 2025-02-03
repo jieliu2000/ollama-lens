@@ -23,22 +23,32 @@ var (
 	ollamaURLLock sync.RWMutex
 	fileCache     = make(map[string][]byte)
 	fileCacheLock sync.RWMutex
+	serverConfig  struct {
+		host string
+		port int
+	}
 )
 
+// 初始化配置
 func initConfig() {
 	viper.SetConfigName("ollama_lens")
 	viper.SetConfigType("yml")
 	viper.AddConfigPath(".")
 	viper.AddConfigPath("$HOME/.config/ollama_lens")
 
-	// 设置默认值
+	setDefaultConfig()
+	loadConfig()
+}
+
+func setDefaultConfig() {
 	viper.SetDefault("server.port", 6366)
 	viper.SetDefault("server.host", "localhost")
 	viper.SetDefault("ollama.default_url", "http://localhost:11434")
+}
 
+func loadConfig() {
 	if err := viper.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-			// 配置文件不存在时创建默认配置
 			if err := viper.SafeWriteConfig(); err != nil {
 				log.Printf("无法创建配置文件: %v", err)
 			}
@@ -48,100 +58,154 @@ func initConfig() {
 	}
 }
 
+// 处理静态文件
+func handleStaticFile(c *gin.Context) {
+	path := strings.TrimPrefix(c.Param("filepath"), "/")
+
+	// 处理根路径请求，重定向到 index.html
+	if path == "" {
+		c.Redirect(http.StatusMovedPermanently, "/static/index.html")
+		return
+	}
+
+	fullPath := filepath.Join("static", path)
+	if !validateFile(c, fullPath) {
+		return
+	}
+
+	content, err := getFileContent(fullPath, path)
+	if err != nil {
+		c.Status(http.StatusNotFound)
+		return
+	}
+
+	serveContent(c, path, content)
+}
+
+func validateFile(c *gin.Context, fullPath string) bool {
+	fileInfo, err := os.Stat(fullPath)
+	if err != nil {
+		c.Status(http.StatusNotFound)
+		return false
+	}
+
+	if fileInfo.IsDir() {
+		// 如果是目录，重定向到该目录下的 index.html
+		if _, err := os.Stat(filepath.Join(fullPath, "index.html")); err == nil {
+			c.Redirect(http.StatusMovedPermanently, "/static/"+filepath.Join(strings.TrimPrefix(fullPath, "static"), "index.html"))
+			return false
+		}
+		c.Status(http.StatusForbidden)
+		return false
+	}
+	return true
+}
+
+func getFileContent(fullPath, path string) ([]byte, error) {
+	fileCacheLock.RLock()
+	content, exists := fileCache[fullPath]
+	fileCacheLock.RUnlock()
+
+	if exists {
+		return content, nil
+	}
+
+	content, err := os.ReadFile(fullPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if shouldProcessFile(path) {
+		content = processFileContent(content, fullPath)
+	}
+
+	return content, nil
+}
+
+func shouldProcessFile(path string) bool {
+	return strings.HasSuffix(path, ".js") || strings.HasSuffix(path, ".html")
+}
+
+func processFileContent(content []byte, fullPath string) []byte {
+	replaced := strings.ReplaceAll(string(content), "__OLLAMA_PROXY__",
+		fmt.Sprintf("http://%s:%d/ollama", serverConfig.host, serverConfig.port))
+
+	fileCacheLock.Lock()
+	fileCache[fullPath] = []byte(replaced)
+	fileCacheLock.Unlock()
+
+	return []byte(replaced)
+}
+
+func serveContent(c *gin.Context, path string, content []byte) {
+	contentType := getContentType(path)
+	c.Data(http.StatusOK, contentType, content)
+}
+
+func getContentType(path string) string {
+	switch {
+	case strings.HasSuffix(path, ".js"):
+		return "application/javascript"
+	case strings.HasSuffix(path, ".css"):
+		return "text/css"
+	case strings.HasSuffix(path, ".html"):
+		return "text/html"
+	case strings.HasSuffix(path, ".png"):
+		return "image/png"
+	case strings.HasSuffix(path, ".jpg"), strings.HasSuffix(path, ".jpeg"):
+		return "image/jpeg"
+	case strings.HasSuffix(path, ".gif"):
+		return "image/gif"
+	case strings.HasSuffix(path, ".svg"):
+		return "image/svg+xml"
+	default:
+		return "" // 让浏览器自动检测
+	}
+}
+
 func main() {
-	// 初始化配置
 	initConfig()
 
-	// 初始化 Ollama URL
+	// 初始化服务器配置
+	serverConfig.host = viper.GetString("server.host")
+	serverConfig.port = viper.GetInt("server.port")
 	ollamaURL = viper.GetString("ollama.default_url")
 
-	// 初始化 Gin 引擎
 	r := gin.Default()
+	setupRoutes(r)
+	startServer(r)
+}
 
-	// 设置静态文件路由
-	r.Static("/static", "./static")
+func setupRoutes(r *gin.Engine) {
+	// 修改静态文件处理路由，使用通配符 /*filepath
+	r.GET("/static/*filepath", handleStaticFile)
+
+	// 主页重定向
 	r.GET("/", func(c *gin.Context) {
 		c.Redirect(http.StatusMovedPermanently, "/static/index.html")
 	})
 
-	// 创建 Ollama 代理
+	// API 路由
 	r.Any("/ollama/*path", ollamaProxyHandler)
-
-	// 添加配置接口路由
 	r.POST("/api/config/ollama", updateOllamaConfigHandler)
 	r.GET("/api/config/ollama", getOllamaConfigHandler)
+}
 
-	// 获取配置的服务器地址和端口
-	host := viper.GetString("server.host")
-	port := viper.GetInt("server.port")
-	addr := fmt.Sprintf("%s:%d", host, port)
-
-	// 启动服务器
-	var listener net.Listener
-	var err error
-	listener, err = net.Listen("tcp", addr)
+func startServer(r *gin.Engine) {
+	addr := fmt.Sprintf("%s:%d", serverConfig.host, serverConfig.port)
+	listener, err := net.Listen("tcp", addr)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	// 替换静态文件路由
-	replaceStaticPlaceholders := func(c *gin.Context) {
-		path := c.Param("filepath")
-		fullPath := filepath.Join("static", path)
+	openBrowser(fmt.Sprintf("http://%s:%d", serverConfig.host, serverConfig.port))
 
-		// 先检查缓存
-		fileCacheLock.RLock()
-		content, exists := fileCache[fullPath]
-		fileCacheLock.RUnlock()
-
-		if !exists {
-			var err error
-			content, err = os.ReadFile(fullPath)
-			if err != nil {
-				c.AbortWithStatus(404)
-				return
-			}
-
-			// 只缓存 js 和 html 文件
-			if strings.HasSuffix(path, ".js") || strings.HasSuffix(path, ".html") {
-				replaced := strings.ReplaceAll(string(content), "__OLLAMA_PROXY__",
-					fmt.Sprintf("http://%s:%d/ollama", host, port))
-
-				fileCacheLock.Lock()
-				fileCache[fullPath] = []byte(replaced)
-				fileCacheLock.Unlock()
-
-				content = []byte(replaced)
-			}
-		}
-
-		// 设置适当的 Content-Type
-		switch {
-		case strings.HasSuffix(path, ".js"):
-			c.Data(200, "application/javascript", content)
-		case strings.HasSuffix(path, ".css"):
-			c.Data(200, "text/css", content)
-		default:
-			c.Data(200, "text/html", content)
-		}
-	}
-
-	// 修改静态文件路由
-	r.NoRoute(func(c *gin.Context) {
-		replaceStaticPlaceholders(c)
-	})
-
-	// 自动打开浏览器
-	openBrowser(fmt.Sprintf("http://%s:%d", host, port))
-
-	// 启动服务器
 	go func() {
 		if err := r.RunListener(listener); err != nil {
 			log.Fatal(err)
 		}
 	}()
 
-	// 保持程序运行
 	select {}
 }
 

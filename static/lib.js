@@ -1,5 +1,13 @@
 const OLLAMA_PROXY = '__OLLAMA_PROXY__';
 
+// 创建一个 axios 实例，设置基础配置
+const api = axios.create({
+    timeout: 30000, // 30秒超时
+    headers: {
+        'Content-Type': 'application/json'
+    }
+});
+
 document.addEventListener('DOMContentLoaded', () => {
     const fileInput = document.querySelector('input[type="file"]');
     const previewContainer = document.querySelector('.preview-container');
@@ -102,19 +110,15 @@ function restoreDefault(input) {
     }
 }
 
-// 新增模型获取函数
+// 修改 fetchModels 函数
 function fetchModels() {
     const modelSelect = document.getElementById('modelSelect');
-    const ollamaUrl = document.getElementById('ollamaUrl').value;
     
     modelSelect.innerHTML = '<option value="" disabled selected>正在加载模型...</option>';
     
-    fetch(`${OLLAMA_PROXY}/api/tags`)
+    api.get(`${OLLAMA_PROXY}/api/tags`)
         .then(response => {
-            if (!response.ok) throw new Error('获取模型失败');
-            return response.json();
-        })
-        .then(data => {
+            const data = response.data;
             modelSelect.innerHTML = data.models
                 .map(model => `<option value="${model.name}">${model.name}</option>`)
                 .join('');
@@ -130,18 +134,36 @@ function fetchModels() {
         });
 }
 
-// 在saveConfig函数中保存选中的模型
+// 修改 saveConfig 函数
 function saveConfig() {
     const urlInput = document.getElementById('ollamaUrl');
     const modelSelect = document.getElementById('modelSelect');
     
-    fetch('/api/config/ollama', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-            url: urlInput.value,
-            model: modelSelect.value 
-        })
+    api.post('/api/config/ollama', {
+        url: urlInput.value,
+        model: modelSelect.value
     })
-    // ... 后续代码保持不变 ...
+    .then(response => {
+        // 配置更新成功后重新获取模型列表
+        fetchModels();
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('保存配置失败，请检查输入是否正确');
+    });
+}
+
+// 如果有其他使用 fetch 的地方，也需要相应修改为 axios
+// 例如，如果有聊天功能：
+async function chatWithAI(message) {
+    try {
+        const response = await api.post(`${OLLAMA_PROXY}/api/chat`, {
+            message: message,
+            // 其他参数...
+        });
+        return response.data;
+    } catch (error) {
+        console.error('Chat error:', error);
+        throw error;
+    }
 } 
