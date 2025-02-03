@@ -5,9 +5,10 @@ let inputTextarea;
 let sendButton;
 let ollamaUrlInput;
 let modelSelect;
-let chatHistory;
+let chatHistory = [];
 let fileInput;
 let previewContainer;
+let chatHistoryContainer; // 将DOM容器提升到全局作用域
 
 // 在全局作用域添加配置对象
 const CONFIG_KEY = 'ollamaLensConfig';
@@ -34,7 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
     sendButton = document.querySelector('.send-button');
     ollamaUrlInput = document.getElementById('ollamaUrl');
     modelSelect = document.getElementById('modelSelect');
-    chatHistory = document.querySelector('.chat-history .h-full');
+    chatHistoryContainer = document.querySelector('.chat-history .h-full');
     fileInput = document.querySelector('input[type="file"]');
     previewContainer = document.querySelector('.preview-container');
     
@@ -156,7 +157,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function clearHistory() {
     if(confirm('确定要清除所有对话历史吗？此操作不可恢复！')) {
-        chatHistory.innerHTML = `
+        chatHistoryContainer.innerHTML = `
             <div class="text-center py-6 text-gray-400 text-sm">
                 <svg class="w-8 h-8 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
@@ -288,7 +289,17 @@ function saveConfig() {
     localStorage.setItem(CONFIG_KEY, JSON.stringify(appConfig));
 }
 
-// 发送消息函数
+async function getImageBase64(file) {
+    return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const base64Data = e.target.result.split(',')[1];
+            resolve(base64Data);
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
 async function sendMessage() {
     const message = inputTextarea.value.trim();
     if (!message) return;
@@ -297,21 +308,46 @@ async function sendMessage() {
         sendButton.disabled = true;
         sendButton.textContent = '发送中...';
 
+        // 处理图片上传
+        const images = await Promise.all(
+            Array.from(fileInput.files).map(file => getImageBase64(file))
+        );
+
+        // 构建消息对象
+        const userMessage = {
+            role: "user",
+            content: message,
+            images: images
+        };
+
+        // 保存到历史记录
+        if(appConfig.useHistory) {
+            chatHistory.push(userMessage);
+        }
+
         const response = await api.post('/ollama/api/chat', {
-            message: message,
             model: modelSelect.value,
+            messages: appConfig.useHistory ? chatHistory : [userMessage],
+            stream: appConfig.streamOutput,
             options: {
-                temperature: parseFloat(document.querySelector('input[type="range"][name="temperature"]').value) / 100,
-                top_p: parseFloat(document.querySelector('input[type="range"][name="topP"]').value) / 100,
-                top_k: parseInt(document.querySelector('input[type="number"][name="topK"]').value),
-                repeat_penalty: parseFloat(document.querySelector('input[type="number"][name="repeatPenalty"]').value),
-                num_ctx: parseInt(document.querySelector('input[type="number"][name="contextLength"]').value)
+                temperature: appConfig.temperature,
+                top_p: appConfig.top_p,
+                top_k: appConfig.top_k,
+                repeat_penalty: appConfig.repeat_penalty,
+                num_ctx: appConfig.num_ctx
             }
         }, {
             headers: {
                 'X-Ollama-URL': appConfig.ollamaUrl
             }
         });
+
+        // 保存AI响应到历史
+        const assistantMessage = {
+            role: "assistant",
+            content: response.data.message
+        };
+        chatHistory.push(assistantMessage);
 
         // 处理响应
         const responseDiv = document.createElement('div');
@@ -322,7 +358,7 @@ async function sendMessage() {
                 <div class="text-xs text-gray-500/80 mt-1">${new Date().toLocaleTimeString()}</div>
             </div>
         `;
-        chatHistory.querySelector('.space-y-3').appendChild(responseDiv);
+        chatHistoryContainer.querySelector('.space-y-3').appendChild(responseDiv);
         inputTextarea.value = '';
 
     } catch (error) {
