@@ -73,10 +73,15 @@ func handleStaticFile(c *gin.Context) {
 		return
 	}
 
-	content, err := getFileContent(fullPath, path)
+	content, err := os.ReadFile(fullPath)
 	if err != nil {
 		c.Status(http.StatusNotFound)
 		return
+	}
+
+	// 处理需要替换占位符的文件
+	if shouldProcessFile(path) {
+		content = processFileContent(content)
 	}
 
 	serveContent(c, path, content)
@@ -101,40 +106,13 @@ func validateFile(c *gin.Context, fullPath string) bool {
 	return true
 }
 
-func getFileContent(fullPath, path string) ([]byte, error) {
-	fileCacheLock.RLock()
-	content, exists := fileCache[fullPath]
-	fileCacheLock.RUnlock()
-
-	if exists {
-		return content, nil
-	}
-
-	content, err := os.ReadFile(fullPath)
-	if err != nil {
-		return nil, err
-	}
-
-	if shouldProcessFile(path) {
-		content = processFileContent(content, fullPath)
-	}
-
-	return content, nil
-}
-
 func shouldProcessFile(path string) bool {
 	return strings.HasSuffix(path, ".js") || strings.HasSuffix(path, ".html")
 }
 
-func processFileContent(content []byte, fullPath string) []byte {
-	replaced := strings.ReplaceAll(string(content), "__OLLAMA_PROXY__",
-		fmt.Sprintf("http://%s:%d/ollama", serverConfig.host, serverConfig.port))
-
-	fileCacheLock.Lock()
-	fileCache[fullPath] = []byte(replaced)
-	fileCacheLock.Unlock()
-
-	return []byte(replaced)
+func processFileContent(content []byte) []byte {
+	return []byte(strings.ReplaceAll(string(content), "__OLLAMA_PROXY__",
+		fmt.Sprintf("http://%s:%d/ollama", serverConfig.host, serverConfig.port)))
 }
 
 func serveContent(c *gin.Context, path string, content []byte) {

@@ -1,5 +1,14 @@
 const OLLAMA_PROXY = '__OLLAMA_PROXY__';
 
+// 在全局作用域声明变量
+let inputTextarea;
+let sendButton;
+let ollamaUrlInput;
+let modelSelect;
+let chatHistory;
+let fileInput;
+let previewContainer;
+
 // 创建一个 axios 实例，设置基础配置
 const api = axios.create({
     timeout: 30000, // 30秒超时
@@ -9,9 +18,15 @@ const api = axios.create({
 });
 
 document.addEventListener('DOMContentLoaded', () => {
-    const fileInput = document.querySelector('input[type="file"]');
-    const previewContainer = document.querySelector('.preview-container');
-
+    // 初始化变量
+    inputTextarea = document.querySelector('textarea');
+    sendButton = document.querySelector('.send-button');
+    ollamaUrlInput = document.getElementById('ollamaUrl');
+    modelSelect = document.getElementById('modelSelect');
+    chatHistory = document.querySelector('.chat-history .h-full');
+    fileInput = document.querySelector('input[type="file"]');
+    previewContainer = document.querySelector('.preview-container');
+    
     fileInput.addEventListener('change', function(e) {
         previewContainer.innerHTML = ''; // 清空之前的预览
         
@@ -72,11 +87,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 初始化时获取模型列表
     fetchModels();
+
+    // 添加点击事件监听
+    sendButton.addEventListener('click', sendMessage);
+
+    // 添加键盘事件监听（Ctrl+Enter发送）
+    inputTextarea.addEventListener('keydown', (e) => {
+        if (e.ctrlKey && e.key === 'Enter') {
+            sendMessage();
+        }
+    });
 });
 
 function clearHistory() {
     if(confirm('确定要清除所有对话历史吗？此操作不可恢复！')) {
-        const chatHistory = document.querySelector('.chat-history .h-full');
         chatHistory.innerHTML = `
             <div class="text-center py-6 text-gray-400 text-sm">
                 <svg class="w-8 h-8 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -112,8 +136,6 @@ function restoreDefault(input) {
 
 // 修改 fetchModels 函数
 function fetchModels() {
-    const modelSelect = document.getElementById('modelSelect');
-    
     modelSelect.innerHTML = '<option value="" disabled selected>正在加载模型...</option>';
     
     api.get(`${OLLAMA_PROXY}/api/tags`)
@@ -136,15 +158,11 @@ function fetchModels() {
 
 // 修改 saveConfig 函数
 function saveConfig() {
-    const urlInput = document.getElementById('ollamaUrl');
-    const modelSelect = document.getElementById('modelSelect');
-    
     api.post('/api/config/ollama', {
-        url: urlInput.value,
+        url: ollamaUrlInput.value,
         model: modelSelect.value
     })
     .then(response => {
-        // 配置更新成功后重新获取模型列表
         fetchModels();
     })
     .catch(error => {
@@ -153,17 +171,44 @@ function saveConfig() {
     });
 }
 
-// 如果有其他使用 fetch 的地方，也需要相应修改为 axios
-// 例如，如果有聊天功能：
-async function chatWithAI(message) {
-    try {
-        const response = await api.post(`${OLLAMA_PROXY}/api/chat`, {
-            message: message,
-            // 其他参数...
-        });
-        return response.data;
-    } catch (error) {
-        console.error('Chat error:', error);
-        throw error;
+// 发送消息函数
+async function sendMessage() {
+    const message = inputTextarea.value.trim();
+    if (!message) {
+        alert('请输入消息内容');
+        return;
     }
-} 
+
+    try {
+        sendButton.disabled = true;
+        sendButton.textContent = '发送中...';
+
+        const response = await api.post('/ollama/api/chat', {
+            message: message,
+            model: modelSelect.value
+        }, {
+            headers: {
+                'X-Ollama-URL': ollamaUrlInput.value || 'http://localhost:11434'
+            }
+        });
+
+        // 处理响应
+        const responseDiv = document.createElement('div');
+        responseDiv.className = 'flex flex-col items-start';
+        responseDiv.innerHTML = `
+            <div class="bg-gray-50 border border-gray-100 rounded-xl p-3 max-w-[85%] shadow-sm">
+                <p class="leading-relaxed text-gray-700">${response.data.message}</p>
+                <div class="text-xs text-gray-500/80 mt-1">${new Date().toLocaleTimeString()}</div>
+            </div>
+        `;
+        chatHistory.querySelector('.space-y-3').appendChild(responseDiv);
+        inputTextarea.value = '';
+
+    } catch (error) {
+        console.error('Error:', error);
+        alert('发送消息失败，请检查服务器连接');
+    } finally {
+        sendButton.disabled = false;
+        sendButton.textContent = '发送';
+    }
+}
