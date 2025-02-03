@@ -30,7 +30,6 @@ jobs:
       - name: Package artifacts
         run: |
           cd $GITHUB_WORKSPACE
-          mkdir -p dist/release
 
           for binary in dist/*; do
             filename=$(basename $binary)
@@ -38,24 +37,18 @@ jobs:
             # 创建临时目录
             temp_dir=$(mktemp -d)
             
-            # 复制二进制文件到临时目录根
-            cp -v "$binary" "$temp_dir/$(basename $binary)"
+            # 复制二进制文件（单个文件）
+            cp -v "$binary" "$temp_dir/"
             
             # 递归复制static目录
-            if [ -d "static" ]; then
-              mkdir -p "$temp_dir/static"
-              cp -rv static/* "$temp_dir/static/"
-            else
-              echo "Error: static directory not found!"
-              exit 1
-            fi
+            cp -rv static/ "$temp_dir/static/"
             
             # 复制文档文件
             cp -v README.md README-zh.md LICENSE NOTICE "$temp_dir/"
             
-            # 打包操作
+            # 打包到dist目录
             cd "$temp_dir"
-            zip -r "$GITHUB_WORKSPACE/dist/release/${filename%.*}.zip" *
+            zip -r "$GITHUB_WORKSPACE/dist/${filename%.*}.zip" .
             
             # 清理临时目录
             cd "$GITHUB_WORKSPACE"
@@ -63,8 +56,8 @@ jobs:
           done
 
           # 验证结果
-          ls -l dist/release/
-          unzip -l dist/release/*.zip
+          ls -l dist/
+          unzip -l dist/*.zip
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
@@ -74,4 +67,4 @@ jobs:
           tag_name: ${{ github.ref_name }}
           name: Release ${{ github.ref_name }}
           files: |
-            dist/release/*.zip
+            dist/*.zip
