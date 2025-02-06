@@ -23,7 +23,7 @@ let appConfig = {
 
 // 创建一个 axios 实例，设置基础配置
 const api = axios.create({
-    timeout: 30000, // 30秒超时
+    timeout: 30000*10, // 5分钟超时
     headers: {
         'Content-Type': 'application/json'
     }
@@ -131,9 +131,7 @@ document.addEventListener('DOMContentLoaded', () => {
     configControls.forEach(control => {
         control.addEventListener('change', () => {
             saveConfig();
-            if (control === modelSelect) {
-                fetchModels();
-            }
+        
         });
     });
 
@@ -159,7 +157,6 @@ document.addEventListener('DOMContentLoaded', () => {
         fileInput.value = '';
         previewContainer.innerHTML = '';
         saveConfig();
-        fetchModels();
     });
 });
 
