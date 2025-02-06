@@ -26,6 +26,9 @@ jobs:
           GOOS=linux GOARCH=amd64 go build -o dist/ollama-lens-linux-amd64 main.go
           GOOS=darwin GOARCH=arm64 go build -o dist/ollama-lens-macos-arm64 main.go
           GOOS=windows GOARCH=amd64 go build -o dist/ollama-lens-windows-amd64.exe main.go
+          GOOS=linux GOARCH=arm64 go build -o dist/ollama-lens-linux-arm64 main.go
+          GOOS=windows GOARCH=arm64 go build -o dist/ollama-lens-windows-arm64 main.go
+          GOOS=darwin GOARCH=amd64 go build -o dist/ollama-lens-macos-amd64 main.go
 
       - name: Package artifacts
         run: |
